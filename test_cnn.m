@@ -2,12 +2,12 @@
 test_labels = labels(test);
 
 predictions = [];
-files = dir("C:\Users\henri\Desktop\Koulu\Gradu\data\test_set");
+files = dir("C:\Users\henri\Desktop\Koulu\Gradu\data\MRI_PET_TEST");
 files = {files.name};
 files(1:2) = [];
 for item = 1:length(files)
-    img = imread(fullfile("C:\Users\henri\Desktop\Koulu\Gradu\data\test_set",files(item)));
-    predictions = [predictions, classify(trainedNetwork_8,img)];
+    img = imread(fullfile("C:\Users\henri\Desktop\Koulu\Gradu\data\MRI_PET_TEST",files(item)));
+    predictions = [predictions, classify(trainedNetwork_2,img)];
 end
 
 new_pred = [];
