@@ -141,11 +141,9 @@ def build_img(data: list, mri_names: str, pet_names: str, resize_dims: tuple) ->
         for slice in range(dictionary[mri_names[image_index]].shape[2]):
             img_array = np.dstack(
                 (
-                    normalize(
-                        cv2.resize(
-                            dictionary[mri_names[image_index]][:, :, slice],
-                            resize_dims,
-                        )
+                    cv2.resize(
+                        dictionary[mri_names[image_index]][:, :, slice],
+                        resize_dims,
                     ),
                     np.zeros(resize_dims),
                     cv2.resize(
@@ -303,14 +301,34 @@ def create_dataset(set_seed: int):
     neg_examples = build_img(negative_slices, mri_neg, pet_neg, _IMG_DIMS)
 
     examples = pos_examples + neg_examples
-    labels = ["Pos"] * len(pos_examples) + ["Neg"] * len(neg_examples)
+    labels = [1] * len(pos_examples) + [0] * len(neg_examples)
 
     train_examples, test_examples, train_labels, test_labels = train_test_split(
-        examples, labels, random_state=set_seed
+        examples, labels, random_state=set_seed, test_size=0.3
     )
 
-    return (train_examples, train_labels), (test_examples, test_labels)
+    train_examples, val_examples, train_labels, val_labels = train_test_split(
+        train_examples, train_labels, random_state=set_seed, test_size=0.2
+    )
     
+    num_val = len(val_labels)
+    num_test = len(test_labels)
+
+    train_examples = tf.data.Dataset.from_tensor_slices(train_examples)
+    train_labels = tf.data.Dataset.from_tensor_slices(train_labels)
+    val_examples = tf.data.Dataset.from_tensor_slices(val_examples)
+    val_labels = tf.data.Dataset.from_tensor_slices(val_labels)
+    test_examples = tf.data.Dataset.from_tensor_slices(test_examples)
+    test_labels = tf.data.Dataset.from_tensor_slices(test_labels)
+    
+    train_data = tf.data.Dataset.zip((train_examples, train_labels))
+    train_data = train_data.batch(36)
+    val_data = tf.data.Dataset.zip((val_examples, val_labels))
+    val_data = train_data.batch(num_val)
+    test_data = tf.data.Dataset.zip((test_examples, test_labels))
+    test_data = test_data.batch(num_test)
+    return train_data, val_data, test_data
+
     # save_imgs(
     #     (train_examples, train_labels),
     #     (test_examples, test_labels),

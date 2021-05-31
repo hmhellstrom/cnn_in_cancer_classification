@@ -6,11 +6,6 @@ from tensorflow import keras
 from tensorflow.keras import layers, preprocessing
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix
 
-_IMG_DIRS = {
-    "DATA-ROOT": r"C:\Users\henri\Desktop\Koulu\Gradu\data",
-}
-
-
 def compute_threshold(true_labels, predicted):
     test_points = np.arange(0, 1, 0.01)
     auc = []
@@ -19,11 +14,10 @@ def compute_threshold(true_labels, predicted):
         auc.append(roc_auc_score(true_labels, pred_labels))
     return 0.01 * auc.index(max(auc))
 
-
 seed = 123
-train_ds, val_ds = image_functions.create_dataset(seed)
+train_ds, val_ds, test_ds = image_functions.create_dataset(seed)
 
-_INPUT_DIMS = train_ds[0][0].shape
+_INPUT_DIMS = list(train_ds.as_numpy_iterator())[0][0][0].shape
 
 base_model = keras.applications.ResNet50(
     include_top=False, weights="imagenet", input_shape=_INPUT_DIMS
@@ -71,27 +65,23 @@ model.compile(
     metrics=[keras.metrics.BinaryAccuracy(), keras.metrics.AUC()],
 )
 
-first_history = model.fit(train_ds[0], epochs=10, validation_data=val_ds)
+first_history = model.fit(train_ds, epochs=10, validation_data=val_ds)
 
-base_model.trainable = True
+# base_model.trainable = True
 
-model.compile(
-    optimizer=keras.optimizers.SGD(1e-5),
-    loss=keras.losses.BinaryCrossentropy(),
-    metrics=[keras.metrics.BinaryAccuracy(), keras.metrics.AUC()],
-)
+# model.compile(
+#     optimizer=keras.optimizers.SGD(1e-5),
+#     loss=keras.losses.BinaryCrossentropy(),
+#     metrics=[keras.metrics.BinaryAccuracy(), keras.metrics.AUC()],
+# )
 
-second_history = model.fit(train_ds, epochs=5, validation_data=val_ds)
-# tähän trainille j-statistiikka
+# second_history = model.fit(train_ds, epochs=5, validation_data=val_ds)
+# # tähän trainille j-statistiikka
 
-train_predictions = model.predict(train_ds)
-train_labels = np.concatenate([y for x, y in train_ds], axis=0)
-threshold = compute_threshold(train_labels, train_predictions)
+# train_predictions = model.predict(train_ds)
+# train_labels = np.concatenate([y for x, y in train_ds], axis=0)
+# threshold = compute_threshold(train_labels, train_predictions)
 
-test_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    _IMG_DIRS["DATA-ROOT"] + r"\test",
-    image_size=(_INPUT_DIMS[0], _INPUT_DIMS[1]),
-)
 labels = np.concatenate([y for x, y in test_ds], axis=0)
 
 predictions = model.predict(test_ds)
