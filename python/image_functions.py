@@ -17,7 +17,7 @@ _IMG_DIRS = {
     "MASK": r"C:\Users\henri\Desktop\Koulu\Gradu\data\Seafile\anom_data\positiiviset",
     "DATA-ROOT": r"C:\Users\henri\Desktop\Koulu\Gradu\data",
 }
-_IMG_DIMS = (224, 224)
+_IMG_DIMS = (512, 512)
 _BATCH_SIZE = 36
 
 
@@ -141,15 +141,15 @@ def build_img(data: list, mri_names: str, pet_names: str, resize_dims: tuple) ->
         for slice in range(dictionary[mri_names[image_index]].shape[2]):
             img_array = np.dstack(
                 (
-                    cv2.resize(
+                    normalize(cv2.resize(
                         dictionary[mri_names[image_index]][:, :, slice],
                         resize_dims,
-                    ),
+                    )),
                     np.zeros(resize_dims),
-                    cv2.resize(
+                    normalize(cv2.resize(
                         dictionary[pet_names[image_index]][:, :, slice],
                         resize_dims,
-                    ),
+                    ), mri=False),
                     # cv2.resize(
                     #     normalize(dictionary[pet_names[image_index]][:, :, slice], mri=False),
                     #     resize_dims,
@@ -311,7 +311,6 @@ def create_dataset(set_seed: int):
         train_examples, train_labels, random_state=set_seed, test_size=0.2
     )
     
-    num_val = len(val_labels)
     num_test = len(test_labels)
 
     train_examples = tf.data.Dataset.from_tensor_slices(train_examples)
@@ -321,12 +320,9 @@ def create_dataset(set_seed: int):
     test_examples = tf.data.Dataset.from_tensor_slices(test_examples)
     test_labels = tf.data.Dataset.from_tensor_slices(test_labels)
     
-    train_data = tf.data.Dataset.zip((train_examples, train_labels))
-    train_data = train_data.batch(36)
-    val_data = tf.data.Dataset.zip((val_examples, val_labels))
-    val_data = train_data.batch(num_val)
-    test_data = tf.data.Dataset.zip((test_examples, test_labels))
-    test_data = test_data.batch(num_test)
+    train_data = tf.data.Dataset.zip((train_examples, train_labels)).batch(_BATCH_SIZE)
+    val_data = tf.data.Dataset.zip((val_examples, val_labels)).batch(_BATCH_SIZE)
+    test_data = tf.data.Dataset.zip((test_examples, test_labels)).batch(num_test)
     return train_data, val_data, test_data
 
     # save_imgs(
